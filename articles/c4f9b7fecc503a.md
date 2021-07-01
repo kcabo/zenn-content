@@ -2,14 +2,14 @@
 title: "WSL2+Docker+VSCodeの開発環境構築とPythonでWebアプリを試すまで"
 emoji: "🧰"
 type: "tech" # tech: 技術記事 / idea: アイデア
-topics: [wsl, wsl2, docker, vscode, fastapi]
-published: false
+topics: [vscode, wsl, wsl2, docker, fastapi]
+published: true
 ---
 
 Windowsユーザーの皆さん、手軽にLinux環境で開発したいですよね。そんなときにVSCodeのRemote Development機能は非常に便利です。
 
 :::message alert
-細かい手順は基本的に公式ドキュメントに頼ってます。これはざっくりとした全体の流れや概念の紹介です。
+細かい手順は基本的に公式ドキュメントに頼ってます。またDockerなどにおける細かい用語の説明はしません。これはざっくりとした全体の流れや概念の紹介です。
 :::
 
 ## おおまかな流れ
@@ -17,7 +17,7 @@ Windowsユーザーの皆さん、手軽にLinux環境で開発したいです�
 2. VSCodeからWSL2にリモート接続する
 3. Dockerを導入する
 4. VSCodeからDockerコンテナにリモート接続する
-5. コンテナでWebサーバーを立ててブラウザから接続してみる
+5. コンテナでWebサーバーを立て、ブラウザからアクセスする
 
 ※ 筆者の環境は **Windows10 Home 21H1** です。
 
@@ -25,7 +25,7 @@ Windowsユーザーの皆さん、手軽にLinux環境で開発したいです�
 
 [Microsoftの公式ドキュメント(日本語)](https://docs.microsoft.com/ja-jp/windows/wsl/install-win10)が分かりやすいです。これに従いましょう。
 
-## どのLinuxディストリビューションを選択するか
+:::details どのLinuxディストリビューションを選択するか
 Ubuntuが最もポピュラーな選択肢でしょう。Microsoft Storeには複数のUbuntuディストリビューションがありますね。
 - Ubuntu
 - Ubuntu 20.04 LTS
@@ -33,27 +33,28 @@ Ubuntuが最もポピュラーな選択肢でしょう。Microsoft Storeには�
 
 無印のUbuntuでは最新のバージョンがインストールされます。執筆時点で最新が20.04なので、上2つの中身は同じです。私は2つ目をインストールしました。
 参考: [A Guide to Upgrading your Ubuntu App’s Release | Windows Command Line](https://devblogs.microsoft.com/commandline/upgrading-ubuntu/)
+:::
 
-
-## 0x80370102エラーが発生したら
+:::details 0x80370102エラーが発生したら
 私の環境では途中で[エラーが発生](https://docs.microsoft.com/ja-jp/windows/wsl/install-win10#:~:text=%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB%E3%81%8C%E3%82%A8%E3%83%A9%E3%83%BC%200x80070003%20%E3%81%BE%E3%81%9F%E3%81%AF%E3%82%A8%E3%83%A9%E3%83%BC%200x80370102%20%E3%81%A7%E5%A4%B1%E6%95%97%E3%81%97%E3%81%9F)しました。どうやらCPU側で仮想化がサポートされていない場合、BIOS設定をいじる必要があるみたいです。
+:::
 
-## パッケージの更新
+### パッケージの更新
 下記コマンドでUbuntu内のパッケージを最新版に更新できます。導入時は念の為やっておくと安心です。
 ```bash
 $ sudo apt update
 $ sudo apt upgrade
 ```
 
-## ソースコードはWSL側に格納する
+### ソースコードはWSL側に格納する
 パフォーマンス上、プロジェクトフォルダはWSL内に作ったほうがいいようです。
->特殊な理由がない限り、複数のオペレーティング システム間でファイルを操作しないことをお勧めします。 Linux コマンド ライン (Ubuntu、OpenSUSE など) で作業している場合、最速のパフォーマンス速度を実現するには、ファイルを WSL ファイル システムに格納します。 Windows コマンド ライン (PowerShell、コマンド プロンプト) で作業している場合、ファイルを Windows ファイル システムに格納してください。
+>特殊な理由がない限り、複数のオペレーティング システム間でファイルを操作しないことをお勧めします。 Linux コマンド ライン (Ubuntu、OpenSUSE など) で作業している場合、最速のパフォーマンス速度を実現するには、ファイルを WSL ファイル システムに格納します。 
 >
 > [Microsoft公式 - OS ファイル システム間でのパフォーマンス](https://docs.microsoft.com/ja-jp/windows/wsl/compare-versions#performance-across-os-file-systems) 
 
 したがって、Windows Terminalを使用する場合は次の設定をしておくとWSLファイルシステムにアクセスしやすいです。
 
-## 開始ディレクトリをLinuxのホームディレクトリ`~`に変更
+### 開始ディレクトリをLinuxのホームディレクトリ`~`に変更
 Windows TerminalでUbuntuを開くと、WindowsのCドライブ内のユーザディレクトリが初期位置になります。[公式の手順](https://docs.microsoft.com/ja-jp/windows/terminal/troubleshooting#set-your-wsl-distribution-to-start-in-the-home--directory-when-launched)にならい、設定を変更しておきます。
 :::message
 公式手順ではJSONファイルを直接編集していますが、**現在はGUIで設定変更できます**。(プロファイル > Ubuntu-20.04 > 全般 >ディレクトリの開始)
@@ -62,13 +63,11 @@ Windows TerminalでUbuntuを開くと、WindowsのCドライブ内のユーザ�
 :::
 
 # Remote-WSLでVSCodeからWSL2に接続する(Dockerなしで)
-WSLへリモート接続するためのVSCode拡張機能をインストールします。2つのうちどちらかを選びます。
-- [Remote - WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl)
-- [Remote Development](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack)
-  - Remote - WSLを含んだ拡張機能のパッケージです。このあと使う[Remote - Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)も含まれているので、私はこちらをインストールしました。
 
-## WSL上のPythonでHelloWorldしてみる
-それではRemote-WSLでPythonを実行してみましょう。Ubuntuを開き、以下を実行します。
+### WSL上のPythonでHelloWorldしてみる
+まず[Remote Development](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack)というVSCode拡張機能をインストールします。この拡張機能は今から使うRemote-WSLや後で使うRemote-Containersなどが含まれたパッケージです。
+
+それではRemote-WSLを使い、Pythonを実行してみます。Ubuntuを開き、以下を実行します。
 ```bash
 $ pwd # Linuxホームディレクトリにいることを確認
 /home/kcabo
@@ -96,10 +95,11 @@ $ which python3
 ```
 
 
-## リモートに接続するとはどういうことか
-[公式](https://code.visualstudio.com/docs/remote/remote-overview)の説明画像を拝借しました。
+## リモートでWSLに接続するってどういうこと？
+ローカルマシンにあるフォルダなのにリモート接続ってどういうことでしょうか。それを説明するのに[公式](https://code.visualstudio.com/docs/remote/remote-overview)の画像が分かりやすいです。
 ![](https://storage.googleapis.com/zenn-user-upload/a5bccfe849a6bbd8d1ead92d.png)
-WSL2に初めて接続した際にVSCode ServerがWSL2にインストールされます。この環境には以下のような特徴があります。
+
+ローカル(=Windows)からWSL上のVSCode Serverにアクセスします。ソースコードの編集はこのサーバーを通じてよしなにやってくれるわけです。VSCode Serverは初接続時にWSL2へインストールされます。この環境下での開発は以下のような特徴があります。
 
 - ローカル(Windows)とは完全に隔離された環境でありながら、ローカルとほとんど変わらない操作感で開発ができる
 - Linux環境で開発するため、改行コードもLFになる
@@ -107,39 +107,35 @@ WSL2に初めて接続した際にVSCode ServerがWSL2にインストールさ�
 - VSCodeの拡張機能もローカルと独立(一部見た目を変えるテーマなどは共有)
   - たとえばリモート接続中にVSCodeのPython拡張機能を追加すると、WSLのホームディレクトリの`.vscode-server`内にインストールされます
 
-## Remote - WSLなしじゃだめなの？
-WSLのLinuxファイルシステム上にあるファイルは例えば以下のようなパスでWindowsからアクセスできます。
-- `\\wsl$\Ubuntu-20.04\home\kcabo\my-app\main.py`
+### Remote-WSLなしじゃだめなの？
+WSLのLinuxファイルシステムには`\\wsl$\Ubuntu-20.04\home\kcabo\my-app\`といったパスでWindowsからアクセスできます。
 
-このファイルをRemote - WSLなしでWindows上のファイルとして開くことも可能です。(VSCodeの`Reopen Folder Locally`でできます) しかしその場合pythonインタプリタはWindowsにインストールされている中から選ぶことになります。Linux上のPythonランタイムは使えません。
+つまりWindows上のフォルダとして開くことも可能です。(VSCodeの`Reopen Folder Locally`でできます) しかしその場合pythonインタプリタはWindowsにインストールされている中から選ぶことになります。Linux上のPythonランタイムは使えません。
 
-既存のWindows環境はあくまでソースコードを書くためのインターフェースとし、実際にコードが走るWSLとは隔離させる、これがRemote - WSLの役割と私は解釈してます。
+**既存のWindows環境はあくまでソースコードを書くためのインターフェースとし、実際にコードが走るWSLとは隔離させる**、これがRemote - WSLの役割と私は解釈してます。
 
 
 # Dockerの導入
 
-[Docker Desktop for Windows](https://hub.docker.com/editions/community/docker-ce-desktop-windows/)
-こちらの公式サイトからDockerをインストールします。インストールダイアログでは`Install required Windows components for WSL 2`に必ずチェックを入れておきましょう。
-![インストール時の設定](https://storage.googleapis.com/zenn-user-upload/c2140e90690d403cdc0a96d4.png)
+公式サイトからDockerをインストールします。
+https://hub.docker.com/editions/community/docker-ce-desktop-windows/
+インストールダイアログでは`Install required Windows components for WSL 2`に必ずチェックを入れておきましょう。
+![インストール時の設定](https://storage.googleapis.com/zenn-user-upload/c2140e90690d403cdc0a96d4.png =400x)
 
 インストール後にDockerDesktopの`Settings`>`General`を確認します。`Use the WSL 2 based engine (Windows Home can only run the WSL 2 backend)`にデフォルトでチェックが入っているはずです。
 
-![](https://storage.googleapis.com/zenn-user-upload/789ac85b337fab0403a711b7.png)
+![](https://storage.googleapis.com/zenn-user-upload/789ac85b337fab0403a711b7.png =600x)
 
 :::message
 どこかのタイミングでVSCodeの[Docker拡張機能](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker)を**WSL側に**インストールしておくといいです。
 Dockerfileの編集が楽になります。
 :::
 
-## 参考URL
-- [WSL で Docker コンテナーを使ってみる | Microsoft Docs](https://docs.microsoft.com/ja-jp/windows/wsl/tutorials/wsl-containers)
-- [【連載】WSL2、Visual Studio Code、DockerでグッとよくなるWindows開発環境 〜 その4：Visual Studio Code、Dockerで改善！！ 〜 | SIOS Tech. Lab](https://tech-lab.sios.jp/archives/21675#:~:text=%E3%82%8F%E3%81%8B%E3%82%8A%E3%81%BE%E3%81%99%E3%80%82-,WSL2%E3%81%A8Docker%E3%81%AF%E7%9B%B8%E6%80%A7%E3%81%B4%E3%81%A3%E3%81%9F%E3%82%8A%EF%BC%81%EF%BC%81,-%E5%9B%B32%E3%81%A7)
 
-# Remote-ContainerでVSCodeからコンテナに接続する
-[Remote - Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)の拡張機能をインストールしておきましょう。既にRemote Developmentをインストールした方は不要です。(既にインストールされています)
+# Remote-ContainersでVSCodeからコンテナに接続する
 
-## 開発用コンテナを立てる
-先ほどの`my-app`をコンテナ化します。`main.py`と同じ階層に`Dockerfile`を作成します。ベースイメージはPythonが動けば何でもいいでしょう。
+### 開発用コンテナを立てる
+先ほどの`my-app`をコンテナ化します。`main.py`と同じ階層に`Dockerfile`を作成します。ベースイメージはPythonが動けば何でもいいです。
 ```Dockerfile:Dockerfile
 FROM python:3.9-slim-buster
 ```
@@ -154,9 +150,9 @@ FROM python:3.9-slim-buster
 ![](https://storage.googleapis.com/zenn-user-upload/9d712044b4a054d4586ab228.png)
 
 すると勝手にイメージがビルドされ、コンテナが起動します。左下の接続ボタンが以下のように変化し、`.devcontainer`フォルダが新しく作られたことに気づくでしょう。
-![](https://storage.googleapis.com/zenn-user-upload/4c005e3c6d198644e6cdde6c.png)
+![](https://storage.googleapis.com/zenn-user-upload/4c005e3c6d198644e6cdde6c.png =300x)
 
-## ここはどこ？
+### ここはどこ？
 今VSCodeで接続しているのはコンテナ内です。VSCodeのターミナルで確認してみます。
 ```bash
 $ pwd
@@ -178,7 +174,7 @@ BUG_REPORT_URL="https://bugs.debian.org/"
 ```
 WSLのUbuntuではなくDebianになっていますね。そうですここはコンテナの中です。不思議な気分です。
 
-## コンテナを消しても変更は維持される
+### コンテナを消しても変更は維持される
 それではVSCode上で先ほどのpythonファイルを編集してみます。
 ```python:main.py
 print('Hello from Container!')
@@ -197,7 +193,7 @@ Hello from Container!
 コンテナ内で編集した`main.py`を確認してみてください。`print('Hello from Container!')`のままになっています！不思議ですね。実はこれ、WSL上のこのフォルダが先ほどのコンテナ内にマウントされていたからなんです。次項で詳述します。
 
 
-## リモートでコンテナに接続するとは？
+## リモートでコンテナに接続するってどういうこと？
 こちらも[公式](https://code.visualstudio.com/docs/remote/containers)の説明画像を拝借しました。
 ![](https://storage.googleapis.com/zenn-user-upload/0cdbc42498de77bf498bbd3c.png)
 
@@ -232,25 +228,25 @@ RUN pip install fastapi uvicorn[standard]
 
 **VSCodeのターミナルで**次のコマンドを叩けばサーバーが立ち上がります。
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
+$ uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 最低限これだけで動きます。ブラウザで http://localhost:8000/ にアクセスしてください。"Hello World"と表示されましたか？
 
 
 
-## ポートフォワーディングはVSCodeが勝手にやってくれる
+### ポートフォワーディングはVSCodeが勝手にやってくれる
 ろくに設定ファイルもいじらずに簡単に接続できました。コンテナの8000番ポートが自動的にローカルの8000番ポートに割り当てられています。
 ![](https://storage.googleapis.com/zenn-user-upload/bb6f2d2ff2b7d020cc51a8c4.png)
 8000番ポートでサーバーが立てられると、VSCodeがそれを認識して適当なローカルアドレスに転送してくれます。便利ですね。
 
 
-## 実際の開発ではdevcontainer.jsonの設定が必要
+### 実際の開発ではdevcontainer.jsonの設定が必要
 簡略化のため、`devcontainer.json`は触らずに実行しました。実際は`devcontainer.json`内に拡張機能などの設定を記述していく必要があります。
 https://code.visualstudio.com/docs/remote/devcontainerjson-reference
 
 
-## (おまけ) VSCodeなしでサーバーを立てる場合
+### (おまけ) VSCodeなしでサーバーを立てる場合
 Dockerfileを以下のように書き足します。
 
 ```Dockerfile:Dockerfile
