@@ -6,7 +6,7 @@ topics: [vscode, wsl, wsl2, docker, fastapi]
 published: true
 ---
 
-Windowsユーザーの皆さん、手軽にLinux環境で開発したいですよね。そんなときにVSCodeのRemote Development機能は非常に便利です。
+Windowsユーザーの皆さん、手軽にLinux環境で開発したいですよね！ VSCodeのRemote Development機能を使えば手軽&綺麗な開発環境を作れます！
 
 :::message alert
 細かい手順は基本的に公式ドキュメントに頼ってます。またDockerなどにおける細かい用語の説明はしません。これはざっくりとした全体の流れや概念の紹介です。
@@ -49,7 +49,6 @@ $ sudo apt upgrade
 ### ソースコードはWSL側に格納する
 パフォーマンス上、プロジェクトフォルダはWSL内に作ったほうがいいようです。
 >特殊な理由がない限り、複数のオペレーティング システム間でファイルを操作しないことをお勧めします。 Linux コマンド ライン (Ubuntu、OpenSUSE など) で作業している場合、最速のパフォーマンス速度を実現するには、ファイルを WSL ファイル システムに格納します。 
->
 > [Microsoft公式 - OS ファイル システム間でのパフォーマンス](https://docs.microsoft.com/ja-jp/windows/wsl/compare-versions#performance-across-os-file-systems) 
 
 したがって、Windows Terminalを使用する場合は次の設定をしておくとWSLファイルシステムにアクセスしやすいです。
@@ -77,7 +76,7 @@ $ code . # カレントディレクトリをVSCodeで開く
 ```
 VSCodeが起動するはずです。(起動しない場合はPATHを通してください)
 画面左下の接続ボタンに「WSL:～」と表示されていればリモート接続できています。
-![](https://storage.googleapis.com/zenn-user-upload/6c7460e6f395fccbdee5b7c3.png)
+![](https://storage.googleapis.com/zenn-user-upload/af04f3713d6358465f0f460e.png)
 
 そのままVSCode上で下記ファイルを作成しましょう。
 ```python:main.py
@@ -96,24 +95,31 @@ $ which python3
 
 
 ## リモートでWSLに接続するってどういうこと？
-ローカルマシンにあるフォルダなのにリモート接続ってどういうことでしょうか。それを説明するのに[公式](https://code.visualstudio.com/docs/remote/remote-overview)の画像が分かりやすいです。
+ローカルマシンにあるフォルダなのにリモート接続ってどういうことでしょうか。それを説明するのに[公式](https://code.visualstudio.com/docs/remote/remote-overview)の図が分かりやすいです。
 ![](https://storage.googleapis.com/zenn-user-upload/a5bccfe849a6bbd8d1ead92d.png)
 
-ローカル(=Windows)からWSL上のVSCode Serverにアクセスします。ソースコードの編集はこのサーバーを通じてよしなにやってくれるわけです。VSCode Serverは初接続時にWSL2へインストールされます。この環境下での開発は以下のような特徴があります。
+ローカル(=Windows)からWSL上のVSCode Serverにアクセスします。ソースコードの編集はこのサーバーを通じてよしなにやってくれるわけです。VSCode Serverは初接続時にWSL2へインストールされます。
 
-- ローカル(Windows)とは完全に隔離された環境でありながら、ローカルとほとんど変わらない操作感で開発ができる
-- Linux環境で開発するため、改行コードもLFになる
-- VSCodeの組み込みターミナルでbashが使える
-- VSCodeの拡張機能もローカルと独立(一部見た目を変えるテーマなどは共有)
-  - たとえばリモート接続中にVSCodeのPython拡張機能を追加すると、WSLのホームディレクトリの`.vscode-server`内にインストールされます
+この図を見てわかるようにVSCodeの拡張機能もローカルとは切り離されています。(一部見た目を変えるテーマなどは共有されます)
+たとえばリモート接続中にVSCodeのPython拡張機能を追加すると、WSLのホームディレクトリの`.vscode-server`内にインストールされます。
+
 
 ### Remote-WSLなしじゃだめなの？
 WSLのLinuxファイルシステムには`\\wsl$\Ubuntu-20.04\home\kcabo\my-app\`といったパスでWindowsからアクセスできます。
 
 つまりWindows上のフォルダとして開くことも可能です。(VSCodeの`Reopen Folder Locally`でできます) しかしその場合pythonインタプリタはWindowsにインストールされている中から選ぶことになります。Linux上のPythonランタイムは使えません。
 
-**既存のWindows環境はあくまでソースコードを書くためのインターフェースとし、実際にコードが走るWSLとは隔離させる**、これがRemote - WSLの役割と私は解釈してます。
+**既存のWindows環境はあくまでコードを書くためのインターフェースとし、実際にコードが走るWSLとは隔離させる**、これがRemote-WSLの役割と私は解釈してます。
 
+:::details ローカル(Windows)とリモート(WSL)との細かな違い
+- ローカルで新規作成したファイルは改行が`CRLF`だが、リモートだと`LF`になる
+- エクスプローラーの表示の違い
+  ![](https://storage.googleapis.com/zenn-user-upload/7cdff7cc19ab3d5c73792558.png =500x)
+- 画像ファイルなどの右クリックメニューが微妙に違う
+  ![](https://storage.googleapis.com/zenn-user-upload/ee3d7a0954a9804e8f1e3cac.png =500x)
+  - リモート側だけにある[ダウンロード]はローカルのWindowsにファイルを保存します(ファイル保存画面が開きます)
+  - ローカルではごみ箱に移動するので[削除]、リモートではごみ箱がないので直接削除=[完全に削除]なのでしょう
+:::
 
 # Dockerの導入
 
@@ -204,7 +210,7 @@ WSLへのリモート接続と異なるのは、ローカルのプログラム�
 また、WSLと同じく拡張機能も切り離されているので、Linterなどの拡張機能はコンテナ内に別途インストールする必要があります。
 
 
-# FastAPIでAPIサーバーを立ててブラウザで叩いてみる
+# FastAPIでAPIサーバーを立ててブラウザからアクセスする
 それでは最後にコンテナでサーバーを立ててWindowsのブラウザから接続してみます。
 とりあえず動かすことを前提にちゃっちゃっと作ります。先ほどまでのファイルを以下のように書き換えます。
 
