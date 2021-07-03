@@ -6,22 +6,27 @@ topics: [vscode, wsl, wsl2, docker, fastapi]
 published: true
 ---
 
-Windowsユーザーの皆さん、手軽にLinux環境で開発したいですよね！ VSCodeのRemote Development機能を使えば手軽&綺麗な開発環境を作れます！
-
-:::message alert
-細かい手順は基本的に公式ドキュメントに頼ってます。またDockerなどにおける細かい用語の説明はしません。これはざっくりとした全体の流れや概念の紹介です。
+:::message
+【追記】記事の構成と意図が分かりにくかったので少し手を加えました🙇🏻
 :::
 
+Windowsユーザーの皆さん、手軽にLinux環境で開発したいですよね！そんなときWSL2やコンテナが選択肢に上がるでしょう。VSCodeのRemote Development機能を使い、どちらも試してみました。Windows・WSL・コンテナを使い分けつつ、VSCodeで快適に開発ができるようになります！
+
+
 ## おおまかな流れ
-1. WSL2を導入する
-2. VSCodeからWSL2にリモート接続する
-3. Dockerを導入する
-4. VSCodeからDockerコンテナにリモート接続する
-5. コンテナでWebサーバーを立て、ブラウザからアクセスする
+1. 【準備編】WSL2の有効化と拡張機能のインストール
+2. 【WSL編】VSCodeからWSL2にリモート接続する
+3. 【コンテナ編】Dockerのインストール
+4. 【コンテナ編】VSCodeからDockerコンテナにリモート接続する
+5. 【コンテナ編】コンテナでWebサーバーを立て、ブラウザからアクセスする
 
-※ 筆者の環境は **Windows10 Home 21H1** です。
+※ 筆者の環境は **Windows10 Home 21H1** です。Windows10 Pro/Enterpriseとは手順が異なるかもしれません。
 
-# WSL2の導入
+:::message alert
+細かい手順は基本的に公式ドキュメントに頼ってます。Dockerにおける細かい用語の説明などもしません。これはざっくりとした全体の流れや概念の紹介です。
+:::
+
+# WSL2の有効化
 
 [Microsoftの公式ドキュメント(日本語)](https://docs.microsoft.com/ja-jp/windows/wsl/install-win10)が分かりやすいです。これに従いましょう。
 
@@ -54,18 +59,32 @@ $ sudo apt upgrade
 したがって、Windows Terminalを使用する場合は次の設定をしておくとWSLファイルシステムにアクセスしやすいです。
 
 ### 開始ディレクトリをLinuxのホームディレクトリ`~`に変更
-Windows TerminalでUbuntuを開くと、WindowsのCドライブ内のユーザディレクトリが初期位置になります。[公式の手順](https://docs.microsoft.com/ja-jp/windows/terminal/troubleshooting#set-your-wsl-distribution-to-start-in-the-home--directory-when-launched)にならい、設定を変更しておきます。
-:::message
-公式手順ではJSONファイルを直接編集していますが、**現在はGUIで設定変更できます**。(プロファイル > Ubuntu-20.04 > 全般 >ディレクトリの開始)
-この値を`//wsl$/Ubuntu-20.04/home/<Your Ubuntu Username>`に置き換えます。
-ちなみにセパレータはスラッシュ`/`でもバックスラッシュ`\`どちらでも大丈夫でした。
-:::
+Windows TerminalでUbuntuを開くと、WindowsのCドライブのユーザディレクトリが初期位置になります。
+Windows Terminalの 設定 > プロファイル > Ubuntu-20.04 > 全般 >ディレクトリの開始 を `%USERPROFILE`から`//wsl$/Ubuntu-20.04/home/<Your Ubuntu Username>`に変更すれば、起動時の初期位置がLinuxのホームディレクトリになります。
+
+その他の設定はこちらの記事にまとめました。
+https://zenn.dev/kcabo/articles/9e9ebe1dc8fa75
+
+
+# VSCode拡張機能のインストール
+
+- [Remote-WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl)
+  - VSCodeがWSLにリモート接続するために必要な拡張機能です。**コンテナさえ使えればいいよって方は不要**です。
+- [Remote-Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+  - VSCodeがコンテナにリモート接続するために必要な拡張機能です。[Docker拡張機能](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker)とは別物です。
+- [Remote Development](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack)
+  - Remote-WSLとRemote-Containersに加え、Remote-SSHがセットになった拡張機能のパッケージです。
+
+私はRemote Developmentをインストールしましたが、次章を飛ばす方はRemote-Containersのみで十分でしょう。
+
 
 # Remote-WSLでVSCodeからWSL2に接続する(Dockerなしで)
 
-### WSL上のPythonでHelloWorldしてみる
-まず[Remote Development](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack)というVSCode拡張機能をインストールします。この拡張機能は今から使うRemote-WSLや後で使うRemote-Containersなどが含まれたパッケージです。
+:::message
+Dockerを入れずとも手軽にLinuxが使えることを確認する章です。WSL内はクリーンに保ちたい！コンテナしか使わない！って方は飛ばしてください。
+:::
 
+### WSL上のPythonでHelloWorldしてみる
 それではRemote-WSLを使い、Pythonを実行してみます。Ubuntuを開き、以下を実行します。
 ```bash
 $ pwd # Linuxホームディレクトリにいることを確認
@@ -86,11 +105,9 @@ VSCodeの組み込みターミナルを起動すると、PowerShellではなくb
 ```bash
 $ python3 main.py 
 Hello World!
-```
-これはUbuntu内のPythonインタプリタで実行されています。確認してみましょう。
-```bash
-$ which python3
-/usr/bin/python3
+
+$ which python3 # pythonインタプリタの確認
+/usr/bin/python3 # Ubuntuにインストールされたランタイムが使用されている
 ```
 
 
@@ -104,7 +121,7 @@ $ which python3
 たとえばリモート接続中にVSCodeのPython拡張機能を追加すると、WSLのホームディレクトリの`.vscode-server`内にインストールされます。
 
 
-### Remote-WSLなしじゃだめなの？
+### Remote-WSLでWindowsとは別のランタイムが使える
 WSLのLinuxファイルシステムには`\\wsl$\Ubuntu-20.04\home\kcabo\my-app\`といったパスでWindowsからアクセスできます。
 
 つまりWindows上のフォルダとして開くことも可能です。(VSCodeの`Reopen Folder Locally`でできます) しかしその場合pythonインタプリタはWindowsにインストールされている中から選ぶことになります。Linux上のPythonランタイムは使えません。
@@ -282,6 +299,8 @@ VSCodeのRemote Developmentを活用すれば環境構築の幅が広がりま�
 
 おかげさまでWindowsではAnaconda(python3.7)、WSL(Ubuntu)ではPython3.8、コンテナ(Debian)ではPython3.9が走るという~~気持ち悪い~~カオスな状況になりました。
 
-Windows環境は極力クリーンに保ちつつ、Node.jsやPythonといったよく使うランタイムはWSLに入れる。中規模以上の開発時など、そのWSLの環境とは隔離して開発したいときには別途コンテナを立てて作業する、といった感じが良さそうです。
+コンテナさえあればいいじゃん。3つもいらなくね？って感じもしますね笑 ただコンテナが立ち上がるまでの時間が少し気になるので、依存関係の少ない小規模なプロジェクトの場合はWSLにリモート接続して開発しようかと思います。
+
+**Windows環境は極力クリーンに保ちつつ、Node.jsやPythonといったよく使うランタイムはWSLに入れる。中規模以上の開発時など、そのWSLの環境とは隔離して開発したいときには別途コンテナを立てて作業する**、といった感じでいきたいと思います。
 
 [Facebookもこの開発手法を気に入っている](https://developers.facebook.com/blog/post/2019/11/19/facebook-microsoft-partnering-remote-development/?locale=ja_JP)みたいです。今後の進展が楽しみですね。
